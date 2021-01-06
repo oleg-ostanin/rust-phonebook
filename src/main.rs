@@ -1,6 +1,59 @@
 extern crate postgres;
+extern crate serde;
+extern crate serde_json;
 
-use postgres::{Connection, SslMode};
+use postgres::{Connection, SslMode, ConnectParams, ConnectTarget, UserInfo};
+use std::fmt::Debug;
+use std::str::FromStr;
+use std::fs::File;
+use std::io::{Read, Error};
+
+
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Params {
+    host: String,
+    port: String,
+    ssl_mode: String,
+    dbname: String,
+    user: String,
+    pass: String,
+}
+
+fn params() -> (ConnectParams, SslMode) {
+    let mut file = File::open("params.json").unwrap();
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).unwrap();
+
+    let params: Params = serde_json::from_str(&contents).unwrap();
+
+    let host = params.host;
+    let port = params.port;
+    let sslmode = params.ssl_mode;
+    let dbname = params.dbname;
+    let user = params.user;
+    let pass = params.pass;
+    
+    let sslmode_ = match sslmode.as_ref() {
+        "disable" => SslMode::None,
+        "enable" => unimplemented!(),
+        _ => panic!("Wrong sslmode"),
+    };
+
+    let params = ConnectParams {
+        target: ConnectTarget::Tcp(host.to_owned()),
+        port: Some(FromStr::from_str(&port).unwrap()),
+        user: Some(UserInfo {
+            user: user.to_owned(),
+            password: Some(pass.to_owned()),
+        }),
+        database: Some(dbname.to_owned()),
+        options: vec![],
+    };
+    (params, sslmode_)
+}
 
 struct Person {
     id: i32,
@@ -9,6 +62,8 @@ struct Person {
 }
 
 fn main() {
+    params();
+
     let conn =
         Connection::connect(
             "postgres://postgres:master@localhost",
