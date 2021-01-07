@@ -2,7 +2,7 @@
   "host": "127.0.0.1",
   "port": "5432",
   "ssl_mode": "disable",
-  "dbname": "unknown",
+  "dbname": "rust_service",
   "user": "postgres",
   "pass": "master"
 }
